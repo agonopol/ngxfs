@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/rand"
 	"fmt"
+	"io"
 	"math/big"
 	"os"
 	"testing"
@@ -13,7 +14,7 @@ type DudStore struct {
 	name string
 }
 
-func (this *DudStore) Get(remote string) (*os.File, error) {
+func (this *DudStore) Get(remote string) (io.ReadCloser, error) {
 	return nil, nil
 }
 
@@ -67,7 +68,7 @@ func RandomString(n int) string {
 	return string(str)
 }
 
-func TestRingDistribution(t *testing.T) {
+func BenchmarkRingDistribution(t *testing.B) {
 	config := make(map[string]Datastore)
 	config["A"] = &DudStore{10, "A"}
 	config["B"] = &DudStore{2324, "B"}
@@ -76,7 +77,7 @@ func TestRingDistribution(t *testing.T) {
 	config["E"] = &DudStore{523, "E"}
 	distro := make(map[string]uint)
 	ring := NewRing(config)
-	for i := 0; i < 276100; i++ {
+	for i := 0; i < 27610; i++ {
 		url := RandomString(RandomNumber(260))
 		server := ring.server(url)
 		if _, found := distro[server.(*DudStore).name]; !found {

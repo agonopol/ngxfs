@@ -5,8 +5,8 @@ import (
 	"encoding/binary"
 	goset "github.com/agonopol/goset"
 	"hash"
+	"io"
 	"math"
-	"os"
 )
 
 type Ring struct {
@@ -33,7 +33,7 @@ func NewRing(servers map[string]Datastore) *Ring {
 	return this
 }
 
-func (this *Ring) Get(remote string) (*os.File, error) {
+func (this *Ring) Get(remote string) (io.ReadCloser, error) {
 	return this.server(remote).Get(remote)
 }
 

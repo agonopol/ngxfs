@@ -1,11 +1,11 @@
 package main
 
 import (
-	"os"
+	"io"
 )
 
 type Datastore interface {
-	Get(remote string) (*os.File, error)
+	Get(remote string) (io.ReadCloser, error)
 	Put(local, remote string) error
 	Delete(remote string) error
 	Ls(remote string) []string
