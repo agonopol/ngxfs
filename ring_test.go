@@ -76,13 +76,20 @@ func TestRingDistribution(t *testing.T) {
 	config["E"] = &DudStore{523, "E"}
 	distro := make(map[string]uint)
 	ring := NewRing(config)
-	for i := 0; i < 27610; i++ {
-		server := ring.server(RandomString(RandomNumber(160)))
+	for i := 0; i < 276100; i++ {
+		url := RandomString(RandomNumber(260))
+		server := ring.server(url)
 		if _, found := distro[server.(*DudStore).name]; !found {
 			distro[server.(*DudStore).name] = 0
 		}
 		distro[server.(*DudStore).name] += 1
 	}
-	fmt.Printf("%v\n", distro)
-
+	fmt.Printf("Original distribution\n")
+	for url, server := range config {
+		fmt.Printf("%s - %v\n", url, float64(server.Capacity())/float64(2761))
+	}
+	fmt.Printf("File distribution\n")
+	for url, server := range distro {
+		fmt.Printf("%s - %v\n", url, float64(server)/float64(276100))
+	}
 }
