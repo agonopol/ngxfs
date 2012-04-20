@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"math/big"
-	"os"
 	"testing"
 )
 

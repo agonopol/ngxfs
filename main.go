@@ -1,43 +1,37 @@
 package main
 
 import (
-	"bufio"
 	"flag"
-	"fmt"
 	"log"
-	"net/http"
 	"os"
 )
 
-var put *string = flag.String("put", "", "Transfer <file> to remote site")
-var del *bool = flag.Bool("del", false, "Delete from remote site")
+var put *bool = flag.Bool("put", false, "put <local> <remote>")
+var del *bool = flag.Bool("del", false, "del <remote>")
 
 func main() {
 	flag.Parse()
 	args := flag.Args()
-	if len(args) != 1 {
-		flag.Usage()
-		os.Exit(1)
-	}
-	if *put != "" {
-		f, e := os.Open(*put)
-		if e != nil {
-			log.Fatal(e)
+	http := NewHttpDatastore("localhost:7777", 1)
+	if *put {
+		if len(args) != 2 {
+			flag.Usage()
+			os.Exit(1)
 		}
-		defer f.Close()
-		r := bufio.NewReader(f)
-		req, e := http.NewRequest("PUT", args[0], r)
-		if e != nil {
-			log.Fatal(e)
+		err := http.Put(args[0], args[1])
+		if err != nil {
+			log.Fatal(err)
 		}
-		resp, e := http.DefaultTransport.RoundTrip(req)
-		if e != nil {
-			log.Fatal(e)
-		}
-		fmt.Printf("%s", resp.Body)
 	} else if *del {
-		fmt.Printf("DEL %s\n", args[0])
+		if len(args) != 1 {
+			flag.Usage()
+			os.Exit(1)
+		}
+		err := http.Delete(args[0])
+		if err != nil {
+			log.Fatal(err)
+		}
 	} else {
-		fmt.Printf("GET %s\n", args[0])
+
 	}
 }

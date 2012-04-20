@@ -7,11 +7,21 @@ import (
 	"hash"
 	"io"
 	"math"
+	"sort"
 )
 
 type Ring struct {
 	servers []Datastore
 	crypt   hash.Hash
+}
+
+func (this *Ring) sortMapKeys(in map[string]Datastore) []string {
+	keys := make([]string, 0)
+	for k, _ := range in {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
 }
 
 func NewRing(servers map[string]Datastore) *Ring {
@@ -22,11 +32,10 @@ func NewRing(servers map[string]Datastore) *Ring {
 	for _, server := range servers {
 		total += server.Capacity()
 	}
-
-	for _, server := range servers {
-		times := math.Floor((float64(len(servers)) * 320 * float64(server.Capacity())) / float64(total))
+	for _, server := range this.sortMapKeys(servers) {
+		times := math.Floor((float64(len(servers)) * 320 * float64(servers[server].Capacity())) / float64(total))
 		for i := 0; i < int(times); i++ {
-			this.servers = append(this.servers, server)
+			this.servers = append(this.servers, servers[server])
 		}
 
 	}
