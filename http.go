@@ -50,6 +50,7 @@ func (this *HttpDatastore) Get(remote string) (io.ReadCloser, error) {
 	if err != nil {
 		return nil, err
 	}
+	log.Printf("%s", resp.Status)
 	return resp.Body, nil
 }
 
