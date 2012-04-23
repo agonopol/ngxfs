@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 )
@@ -46,7 +45,6 @@ func (this *HttpDatastore) Put(local, remote string) error {
 	if e != nil {
 		return e
 	}
-	log.Printf("%s", resp.Status)
 	this.writeBody(resp.Body)
 	return nil
 }
@@ -56,7 +54,6 @@ func (this *HttpDatastore) Get(remote string) (io.ReadCloser, error) {
 	if err != nil {
 		return nil, err
 	}
-	log.Printf("%s", resp.Status)
 	return resp.Body, nil
 }
 
@@ -66,7 +63,6 @@ func (this *HttpDatastore) Delete(remote string) error {
 		return err
 	}
 	resp, err := http.DefaultTransport.RoundTrip(req)
-	log.Printf("%s", resp.Status)
 	this.writeBody(resp.Body)
 	return err
 }
