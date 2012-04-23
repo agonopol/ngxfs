@@ -34,6 +34,11 @@ func (this *HttpDatastore) Put(local, remote string) error {
 	defer f.Close()
 	r := bufio.NewReader(f)
 	req, e := http.NewRequest("PUT", this.url(remote), r)
+	info, e := f.Stat()
+	if e != nil {
+		return e
+	}
+	req.ContentLength = info.Size()
 	if e != nil {
 		return e
 	}
@@ -41,7 +46,8 @@ func (this *HttpDatastore) Put(local, remote string) error {
 	if e != nil {
 		return e
 	}
-	log.Printf("%s,%s", resp.Status, resp.Body)
+	log.Printf("%s", resp.Status)
+	this.writeBody(resp.Body)
 	return nil
 }
 
@@ -60,10 +66,25 @@ func (this *HttpDatastore) Delete(remote string) error {
 		return err
 	}
 	resp, err := http.DefaultTransport.RoundTrip(req)
-	log.Printf("%s,%s", resp.Status, resp.Body)
+	log.Printf("%s", resp.Status)
+	this.writeBody(resp.Body)
 	return err
 }
 
 func (this *HttpDatastore) Ls() []string {
 	return make([]string, 0)
+}
+
+func (this *HttpDatastore) writeBody(in io.ReadCloser) {
+	defer in.Close()
+	r := bufio.NewReader(in)
+	out := bufio.NewWriter(os.Stdout)
+	defer out.Flush()
+	for {
+		line, e := r.ReadSlice('\n')
+		if e != nil {
+			break
+		}
+		out.Write(line)
+	}
 }
