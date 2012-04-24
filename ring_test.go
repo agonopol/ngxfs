@@ -17,8 +17,8 @@ func (this *DudStore) Get(remote string) (io.ReadCloser, error) {
 	return nil, nil
 }
 
-func (this *DudStore) Put(local, remote string) error {
-	return nil
+func (this *DudStore) Put(local, remote string) (io.ReadCloser, error) {
+	return nil, nil
 }
 func (this *DudStore) Ls(remote string) []string {
 	return make([]string, 0)
@@ -28,8 +28,8 @@ func (this *DudStore) Capacity() uint64 {
 	return this.cap
 }
 
-func (this *DudStore) Delete(remote string) error {
-	return nil
+func (this *DudStore) Delete(remote string) (io.ReadCloser, error) {
+	return nil, nil
 }
 
 func TestRingCollisions(t *testing.T) {

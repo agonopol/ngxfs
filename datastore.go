@@ -6,8 +6,8 @@ import (
 
 type Datastore interface {
 	Get(remote string) (io.ReadCloser, error)
-	Put(local, remote string) error
-	Delete(remote string) error
+	Put(local, remote string) (io.ReadCloser, error)
+	Delete(remote string) (io.ReadCloser, error)
 	Ls(remote string) []string
 	Capacity() uint64
 }

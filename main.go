@@ -2,8 +2,10 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"flag"
 	"io"
+	"io/ioutil"
 	"log"
 	"os"
 )
@@ -15,13 +17,33 @@ var del *bool = flag.Bool("del", false, "del <remote>")
 func main() {
 	flag.Parse()
 	args := flag.Args()
-	http := NewHttpDatastore("0.0.0.0:8080", 1)
+
+	configPath := os.Getenv("NGXFS_CONF")
+
+	if configPath == "" {
+		log.Fatalln("NGXFS_CONF undefined")
+	}
+
+	content, err := ioutil.ReadFile(configPath)
+	if err != nil {
+		log.Fatal(err)
+	}
+	config := make(map[string]uint64)
+	err = json.Unmarshal(content, config)
+	if err != nil {
+		log.Fatal(err)
+	}
+	servers := make(map[string]Datastore)
+	for k, v := range config {
+		servers[k] = NewHttpDatastore(k, v)
+	}
+	ring := NewRing(servers)
 	if *put {
 		if len(args) != 2 {
 			flag.Usage()
 			os.Exit(1)
 		}
-		body, err := http.Put(args[0], args[1])
+		body, err := ring.Put(args[0], args[1])
 		if err != nil {
 			log.Fatal(err)
 			WriteBody(body, os.Stderr)
@@ -31,7 +53,7 @@ func main() {
 			flag.Usage()
 			os.Exit(1)
 		}
-		body, err := http.Delete(args[0])
+		body, err := ring.Delete(args[0])
 		if err != nil {
 			log.Fatal(err)
 			WriteBody(body, os.Stderr)
@@ -41,7 +63,7 @@ func main() {
 			flag.Usage()
 			os.Exit(1)
 		}
-		body, err := http.Get(args[0])
+		body, err := ring.Get(args[0])
 		if err != nil {
 			log.Fatal(err)
 		}

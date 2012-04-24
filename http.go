@@ -68,6 +68,6 @@ func (this *HttpDatastore) Delete(remote string) (io.ReadCloser, error) {
 	return resp.Body, nil
 }
 
-func (this *HttpDatastore) Ls() []string {
+func (this *HttpDatastore) Ls(s string) []string {
 	return make([]string, 0)
 }

@@ -46,7 +46,11 @@ func (this *Ring) Get(remote string) (io.ReadCloser, error) {
 	return this.server(remote).Get(remote)
 }
 
-func (this *Ring) Put(local, remote string) error {
+func (this *Ring) Delete(remote string) (io.ReadCloser, error) {
+	return this.server(remote).Delete(remote)
+}
+
+func (this *Ring) Put(local, remote string) (io.ReadCloser, error) {
 	return this.server(remote).Put(local, remote)
 }
 
