@@ -29,7 +29,7 @@ func main() {
 		log.Fatal(err)
 	}
 	config := make(map[string]uint64)
-	err = json.Unmarshal(content, config)
+	err = json.Unmarshal(content, &config)
 	if err != nil {
 		log.Fatal(err)
 	}
