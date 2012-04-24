@@ -15,11 +15,10 @@ var put *bool = flag.Bool("put", false, "put <local> <remote>")
 var del *bool = flag.Bool("del", false, "del <remote>")
 
 func main() {
-	flag.Parse()
-	args := flag.Args()
-
+	// Remove all info from log output
+	log.SetFlags(0)
+	// Load ring config
 	configPath := os.Getenv("NGXFS_CONF")
-
 	if configPath == "" {
 		log.Fatalln("NGXFS_CONF undefined")
 	}
@@ -38,6 +37,9 @@ func main() {
 		servers[k] = NewHttpDatastore(k, v)
 	}
 	ring := NewRing(servers)
+	// Execute get/put/del/ls command
+	flag.Parse()
+	args := flag.Args()
 	if *put {
 		if len(args) != 2 {
 			flag.Usage()
