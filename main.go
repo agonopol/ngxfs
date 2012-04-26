@@ -2,10 +2,8 @@ package main
 
 import (
 	"bufio"
-	"encoding/json"
 	"flag"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 )
@@ -17,29 +15,9 @@ var del *bool = flag.Bool("del", false, "del <remote>")
 func main() {
 	// Remove all info from log output
 	log.SetFlags(0)
-	// Load ring config
-	configPath := os.Getenv("NGXFS_CONF")
-	if configPath == "" {
-		log.Fatalln("NGXFS_CONF undefined")
-	}
-
-	content, err := ioutil.ReadFile(configPath)
-	if err != nil {
-		log.Fatal(err)
-	}
-	config := make(map[string]uint64)
-	err = json.Unmarshal(content, &config)
-	if err != nil {
-		log.Fatal(err)
-	}
-	servers := make(map[string]Datastore)
-	for k, v := range config {
-		servers[k] = NewHttpDatastore(k, v)
-	}
-	ring := NewRing(servers)
-	// Execute get/put/del/ls command
 	flag.Parse()
 	args := flag.Args()
+	ring := NewRing(Config)
 	if *put {
 		if len(args) != 2 {
 			flag.Usage()
