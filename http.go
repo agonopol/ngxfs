@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -45,6 +46,9 @@ func (this *HttpDatastore) Put(local, remote string) (io.ReadCloser, error) {
 	if e != nil {
 		return nil, e
 	}
+	if resp.StatusCode >= 300 {
+		return nil, errors.New(resp.Status)
+	}
 	return resp.Body, nil
 }
 
@@ -64,6 +68,9 @@ func (this *HttpDatastore) Delete(remote string) (io.ReadCloser, error) {
 	resp, err := http.DefaultTransport.RoundTrip(req)
 	if err != nil {
 		return nil, err
+	}
+	if resp.StatusCode >= 300 {
+		return nil, errors.New(resp.Status)
 	}
 	return resp.Body, nil
 }
