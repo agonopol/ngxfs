@@ -57,6 +57,9 @@ func (this *HttpDatastore) Get(remote string) (io.ReadCloser, error) {
 	if err != nil {
 		return nil, err
 	}
+	if resp.StatusCode >= 300 {
+		return nil, errors.New(resp.Status)
+	}
 	return resp.Body, nil
 }
 
