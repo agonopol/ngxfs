@@ -17,7 +17,7 @@ func main() {
 	log.SetFlags(0)
 	flag.Parse()
 	args := flag.Args()
-	ring := NewRing(Config)
+	ring := NewRing(1, Config.servers)
 	if *put {
 		if len(args) != 2 {
 			flag.Usage()

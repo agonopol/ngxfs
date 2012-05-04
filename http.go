@@ -26,6 +26,10 @@ func (this *HttpDatastore) url(path string) string {
 	return fmt.Sprintf("http://%s%s", this.host, path)
 }
 
+func (this *HttpDatastore) Host() string {
+	return this.host
+}
+
 func (this *HttpDatastore) Put(local, remote string) (io.ReadCloser, error) {
 	f, e := os.Open(local)
 	if e != nil {

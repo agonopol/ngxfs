@@ -10,4 +10,5 @@ type Datastore interface {
 	Delete(remote string) (io.ReadCloser, error)
 	Ls(remote string) []string
 	Capacity() uint64
+	Host() string
 }
