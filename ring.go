@@ -38,6 +38,7 @@ func (this *multiReadCloser) Close() error {
 }
 
 type Ring struct {
+	config    map[string]Datastore
 	servers   []Datastore
 	crypt     hash.Hash
 	redundant uint
@@ -54,6 +55,7 @@ func (this *Ring) sortMapKeys(in map[string]Datastore) []string {
 
 func NewRing(redundancy uint, servers map[string]Datastore) *Ring {
 	this := new(Ring)
+	this.config = servers
 	this.redundant = redundancy
 	this.crypt = sha1.New()
 	total := uint64(0)
@@ -118,7 +120,7 @@ func (this *Ring) Put(local, remote string) (io.ReadCloser, error) {
 
 func (this *Ring) Ls(remote string) []string {
 	set := make(map[string]bool)
-	for _, server := range this.servers {
+	for _, server := range this.config {
 		for _, path := range server.Ls(remote) {
 			set[path] = true
 		}
