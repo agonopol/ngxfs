@@ -38,10 +38,10 @@ func (this *multiReadCloser) Close() error {
 }
 
 type Ring struct {
-	config    map[string]Datastore
-	servers   []Datastore
-	crypt     hash.Hash
-	redundant uint
+	config  map[string]Datastore
+	servers []Datastore
+	crypt   hash.Hash
+	redun   uint
 }
 
 func (this *Ring) sortMapKeys(in map[string]Datastore) []string {
@@ -56,7 +56,7 @@ func (this *Ring) sortMapKeys(in map[string]Datastore) []string {
 func NewRing(redundancy uint, servers map[string]Datastore) *Ring {
 	this := new(Ring)
 	this.config = servers
-	this.redundant = redundancy
+	this.redun = redundancy
 	this.crypt = sha1.New()
 	total := uint64(0)
 	for _, server := range servers {
@@ -79,14 +79,15 @@ func (this *Ring) ReduceRing(reducer Datastore) *Ring {
 			reduced[server.Host()] = server
 		}
 	}
-	return NewRing(this.redundant-1, reduced)
+	return NewRing(this.redun-1, reduced)
 }
 
 func (this *Ring) Get(remote string) (io.ReadCloser, error) {
 	var err error
 	for _, server := range this.redudantServers(remote) {
-		closer, err := server.Get(remote)
-		if err != nil {
+		closer, e := server.Get(remote)
+		err = e
+		if err == nil {
 			return closer, nil
 		}
 	}
@@ -95,7 +96,7 @@ func (this *Ring) Get(remote string) (io.ReadCloser, error) {
 
 func (this *Ring) Delete(remote string) (io.ReadCloser, error) {
 	var err error
-	closers := make([]io.ReadCloser, this.redundant)
+	closers := make([]io.ReadCloser, this.redun)
 	for i, server := range this.redudantServers(remote) {
 		closers[i], err = server.Delete(remote)
 		if err != nil {
@@ -108,7 +109,7 @@ func (this *Ring) Delete(remote string) (io.ReadCloser, error) {
 
 func (this *Ring) Put(local, remote string) (io.ReadCloser, error) {
 	var err error
-	closers := make([]io.ReadCloser, this.redundant)
+	closers := make([]io.ReadCloser, this.redun)
 	for i, server := range this.redudantServers(remote) {
 		closers[i], err = server.Put(local, remote)
 		if err != nil {
@@ -133,9 +134,9 @@ func (this *Ring) Ls(remote string) []string {
 }
 
 func (this *Ring) redudantServers(remote string) []Datastore {
-	servers := make([]Datastore, this.redundant)
+	servers := make([]Datastore, this.redun)
 	reduced := this
-	for i := uint(0); i < uint(this.redundant); i++ {
+	for i := uint(0); i < this.redun; i++ {
 		servers[i] = reduced.server(remote)
 		reduced = reduced.ReduceRing(servers[i])
 	}

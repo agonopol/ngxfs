@@ -10,8 +10,8 @@ import (
 )
 
 type Configuration struct {
-	servers    map[string]Datastore
-	redundancy uint
+	servers map[string]Datastore
+	redun   uint
 }
 
 func (this *Configuration) UnmarshalJSON(data []byte) error {
@@ -20,14 +20,14 @@ func (this *Configuration) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
-	for server, weight := range conf["servers"].(map[string]interface{}) {
+	for server, weight := range conf["hosts"].(map[string]interface{}) {
 		this.servers[server] = NewHttpDatastore(server, uint64(weight.(float64)))
 	}
-	if redundancy, found := conf["redundancy"]; found {
-		this.redundancy = uint(redundancy.(float64))
+	if redun, found := conf["redun"]; found {
+		this.redun = uint(redun.(float64))
 	}
-	if len(this.servers) < int(this.redundancy) {
-		return errors.New(fmt.Sprintf("Servers [%d] < Redundancy [%d]", len(this.servers), this.redundancy))
+	if len(this.servers) < int(this.redun) {
+		return errors.New(fmt.Sprintf("Servers [%d] < Redun [%d]", len(this.servers), this.redun))
 	}
 	return nil
 }
@@ -43,7 +43,6 @@ func newConfiguration() *Configuration {
 			log.Fatal(err)
 		}
 		err = json.Unmarshal(content, &conf)
-
 		if err != nil {
 			log.Fatal(err)
 		}
