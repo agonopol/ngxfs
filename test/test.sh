@@ -23,4 +23,7 @@ NGXFS_CONF=./ngxfs.conf ngxfs -del /hi.txt
 curl -I --silent $server/A/hi.txt | grep -q 404 || fail "Shouldn't have found /A/hi.txt"
 curl -I --silent $server/B/hi.txt | grep -q 404 || fail "Shouldn't have found /B/hi.txt"
 curl -I --silent $server/C/hi.txt | grep -q 404 || fail "Shouldn't have found /C/hi.txt"
+echo "cleaning up"
+curl -XDELETE http://0.0.0.0:8080/B/
+curl -XDELETE http://0.0.0.0:8080/C/
 echo "win"
