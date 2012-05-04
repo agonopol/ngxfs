@@ -36,18 +36,15 @@ func newConfiguration() *Configuration {
 	configPath := os.Getenv("NGXFS_CONF")
 	conf := &Configuration{make(map[string]Datastore), 1}
 	if configPath == "" {
-		log.Printf("NGXFS_CONF undefined")
-	} else {
-		content, err := ioutil.ReadFile(configPath)
-		if err != nil {
-			log.Fatal(err)
-		}
-		err = json.Unmarshal(content, &conf)
-		if err != nil {
-			log.Fatal(err)
-		}
+		log.Fatal("NGXFS_CONF undefined")
+	}
+	content, err := ioutil.ReadFile(configPath)
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = json.Unmarshal(content, &conf)
+	if err != nil {
+		log.Fatal(err)
 	}
 	return conf
 }
-
-var Config = newConfiguration()
