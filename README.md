@@ -10,7 +10,7 @@ Install nginx with HttpDavModule (see [etc/install-nginx.sh](https://github.com/
 Get ngxfs
 
 ```bash
-go get github.com/agonopol/ngxfs/blob
+go get github.com/agonopol/ngxfs
 ```
 
 Example ngxfs config [etc/ngxfs.conf](https://github.com/agonopol/ngxfs/blob/master/etc/ngxfs.conf)
