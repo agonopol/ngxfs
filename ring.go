@@ -119,18 +119,23 @@ func (this *Ring) Put(local, remote string) (io.ReadCloser, error) {
 	return MultiReadCloser(closers), nil
 }
 
-func (this *Ring) Ls(remote string) []string {
+func (this *Ring) Ls(path string) ([]string, error) {
 	set := make(map[string]bool)
-	for _, server := range this.config {
-		for _, path := range server.Ls(remote) {
-			set[path] = true
+	links := make([]string, 0)
+	for _, host := range this.config {
+		results, e := host.Ls(path)
+		if e != nil {
+			return nil, e
+		}
+		for _, result := range results {
+			_, exists := set[result]
+			if !exists {
+				links = append(links, result)
+				set[result] = true
+			}
 		}
 	}
-	paths := make([]string, 0)
-	for path, _ := range set {
-		paths = append(paths, path)
-	}
-	return paths
+	return links, nil
 }
 
 func (this *Ring) redudantServers(remote string) []Datastore {

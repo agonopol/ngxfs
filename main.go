@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"flag"
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -11,6 +12,7 @@ import (
 var get *bool = flag.Bool("get", true, "get <remote>")
 var put *bool = flag.Bool("put", false, "put <local> <remote>")
 var del *bool = flag.Bool("del", false, "del <remote>")
+var ls *bool = flag.Bool("ls", false, "ls <path>")
 
 func main() {
 	// Remove all info from log output
@@ -38,6 +40,18 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 			WriteBody(body, os.Stderr)
+		}
+	} else if *ls {
+		if len(args) != 1 {
+			flag.Usage()
+			os.Exit(1)
+		}
+		results, err := ring.Ls(args[0])
+		if err != nil {
+			log.Fatal(err)
+		}
+		for _, result := range results {
+			fmt.Println(result)
 		}
 	} else if *get {
 		if len(args) != 1 {

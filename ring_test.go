@@ -20,8 +20,8 @@ func (this *DudStore) Get(remote string) (io.ReadCloser, error) {
 func (this *DudStore) Put(local, remote string) (io.ReadCloser, error) {
 	return nil, nil
 }
-func (this *DudStore) Ls(remote string) []string {
-	return make([]string, 0)
+func (this *DudStore) Ls(path string) ([]string, error) {
+	return nil, nil
 }
 
 func (this *DudStore) Capacity() uint64 {

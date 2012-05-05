@@ -5,8 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"os"
+	"regexp"
 )
 
 type HttpDatastore struct {
@@ -82,6 +84,23 @@ func (this *HttpDatastore) Delete(remote string) (io.ReadCloser, error) {
 	return resp.Body, nil
 }
 
-func (this *HttpDatastore) Ls(s string) []string {
-	return make([]string, 0)
+func (this *HttpDatastore) Ls(path string) ([]string, error) {
+	resp, e := http.Get(this.url(path))
+	if e != nil {
+		return nil, e
+	}
+	body, e := ioutil.ReadAll(resp.Body)
+	if e != nil {
+		return nil, e
+	}
+	re, e := regexp.Compile(`\<a href\=\"(.*)\"\>`)
+	if e != nil {
+		panic(e)
+	}
+	results := re.FindAllSubmatch(body, -1)
+	links := make([]string, len(results))
+	for i, result := range results {
+		links[i] = string(result[1])
+	}
+	return links, nil
 }
