@@ -107,33 +107,66 @@ func (this *Ring) Delete(remote string) (io.ReadCloser, error) {
 
 }
 
+type status struct {
+	closer io.ReadCloser
+	err    error
+}
+
+func newStatus(closer io.ReadCloser, err error) *status {
+	return &status{closer, err}
+}
+
 func (this *Ring) Put(local, remote string) (io.ReadCloser, error) {
-	var err error
 	closers := make([]io.ReadCloser, this.redun)
-	for i, server := range this.redudantServers(remote) {
-		closers[i], err = server.Put(local, remote)
-		if err != nil {
-			return MultiReadCloser(closers[0:i]), err
+	stats := make(chan *status, this.redun)
+	var err error
+	for _, server := range this.redudantServers(remote) {
+		go func(server Datastore) {
+			stats <- newStatus(server.Put(local, remote))
+		}(server)
+	}
+	for i := uint(0); i < this.redun; i++ {
+		stat := <-stats
+		closers[i] = stat.closer
+		if stat.err != nil {
+			err = stat.err
 		}
 	}
-	return MultiReadCloser(closers), nil
+	close(stats)
+	return MultiReadCloser(closers), err
+}
+
+type files struct {
+	keys []string
+	err  error
+}
+
+func newfiles(keys []string, err error) *files {
+	return &files{keys, err}
 }
 
 func (this *Ring) Ls(path string) ([]string, error) {
 	set := make(map[string]bool)
 	links := make([]string, 0)
+	lists := make(chan *files, this.redun)
 	for _, host := range this.config {
-		results, e := host.Ls(path)
-		if e != nil {
-			return nil, e
+		go func(host Datastore) {
+			lists <- newfiles(host.Ls(path))
+		}(host)
+	}
+	for i := uint(0); i < this.redun; i++ {
+		results := <-lists
+		if results.err != nil {
+			return nil, results.err
 		}
-		for _, result := range results {
+		for _, result := range results.keys {
 			_, exists := set[result]
 			if !exists {
 				links = append(links, result)
 				set[result] = true
 			}
 		}
+
 	}
 	return links, nil
 }
