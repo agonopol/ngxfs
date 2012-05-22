@@ -15,6 +15,8 @@ go get github.com/agonopol/ngxfs
 
 Example ngxfs config [etc/ngxfs.conf](https://github.com/agonopol/ngxfs/blob/master/etc/ngxfs.conf)
 
+Ubuntu package for nginx+WebDAV: http://packages.debian.org/sid/nginx-extras
+
 Set $NGXFS_CONF environment variable
 
 ```bash
