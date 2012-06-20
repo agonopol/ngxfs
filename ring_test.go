@@ -36,14 +36,14 @@ func (this *DudStore) Host() string {
 	return this.name
 }
 
-func TestRingCollisions(t *testing.T) {
+func TestCintinuumCollisions(t *testing.T) {
 	config := make(map[string]Datastore)
 	config["A"] = &DudStore{10, "A"}
 	config["B"] = &DudStore{2324, "B"}
 	config["C"] = &DudStore{152, "C"}
 	config["D"] = &DudStore{123, "D"}
 	config["E"] = &DudStore{523, "E"}
-	ring := NewRing(1, config)
+	ring := NewContinuum(config)
 	love := ring.server("/Circle/Of/Love")
 	life := ring.server("/Circle/Of/Life")
 	if love.(*DudStore).name != ring.server("/Circle/Of/Love").(*DudStore).name {
@@ -71,7 +71,7 @@ func RandomString(n int) string {
 	return string(str)
 }
 
-func BenchmarkRingDistribution(t *testing.B) {
+func BenchmarkContinuumDistribution(t *testing.B) {
 	config := make(map[string]Datastore)
 	config["A"] = &DudStore{10, "A"}
 	config["B"] = &DudStore{2324, "B"}
@@ -79,8 +79,8 @@ func BenchmarkRingDistribution(t *testing.B) {
 	config["D"] = &DudStore{123, "D"}
 	config["E"] = &DudStore{523, "E"}
 	distro := make(map[string]uint)
-	ring := NewRing(1, config)
-	for i := 0; i < 27610; i++ {
+	ring := NewContinuum(config)
+	for i := 0; i < 276100; i++ {
 		url := RandomString(RandomNumber(260))
 		server := ring.server(url)
 		if _, found := distro[server.(*DudStore).name]; !found {
@@ -88,7 +88,7 @@ func BenchmarkRingDistribution(t *testing.B) {
 		}
 		distro[server.(*DudStore).name] += 1
 	}
-	fmt.Printf("Original distribution\n")
+	fmt.Printf("\nOriginal distribution\n")
 	for url, server := range config {
 		fmt.Printf("%s - %v\n", url, float64(server.Capacity())/float64(2761))
 	}
@@ -98,17 +98,17 @@ func BenchmarkRingDistribution(t *testing.B) {
 	}
 }
 
-func TestRingReduce(t *testing.T) {
+func TestRContinuumReduce(t *testing.T) {
 	config := make(map[string]Datastore)
 	config["A"] = &DudStore{10, "A"}
 	config["B"] = &DudStore{2324, "B"}
-	ring := NewRing(1, config)
-	reduced := ring.ReduceRing(config["B"])
+	ring := NewContinuum(config)
+	reduced := ring.reduce(config["B"])
 	if len(ring.servers) == len(reduced.servers) {
 		t.Errorf("Reduced did not eliminate servers")
 	}
 	for _, server := range reduced.servers {
-		if server.(*DudStore).name == config["B"].(*DudStore).name {
+		if server.datastore.(*DudStore).name == config["B"].(*DudStore).name {
 			t.Fatal("Reduce did not remove B from server list")
 		}
 	}

@@ -3,11 +3,14 @@ package main
 import (
 	"crypto/sha1"
 	"encoding/binary"
+	"fmt"
 	"hash"
 	"io"
 	"math"
 	"sort"
 )
+
+const POINTS_PER_SERVER = 320
 
 type multiReadCloser struct {
 	readers io.Reader
@@ -37,54 +40,113 @@ func (this *multiReadCloser) Close() error {
 	return err
 }
 
-type Ring struct {
+type status struct {
+	closer io.ReadCloser
+	err    error
+}
+
+func newStatus(closer io.ReadCloser, err error) *status {
+	return &status{closer, err}
+}
+
+type files struct {
+	keys []string
+	err  error
+}
+
+func newfiles(keys []string, err error) *files {
+	return &files{keys, err}
+}
+
+type ContinuumEntry struct {
+	datastore Datastore
+	hash      uint64
+}
+
+type ContinuumEntries []*ContinuumEntry
+
+func (this ContinuumEntries) Len() int {
+	return len(this)
+}
+
+func (this ContinuumEntries) Swap(i, j int) {
+	this[i], this[j] = this[j], this[i]
+}
+
+func (this ContinuumEntries) Less(i, j int) bool {
+	return this[i].hash < this[j].hash
+}
+
+type Continuum struct {
 	config  map[string]Datastore
-	servers []Datastore
+	servers ContinuumEntries
 	crypt   hash.Hash
-	redun   uint
 }
 
-func (this *Ring) sortMapKeys(in map[string]Datastore) []string {
-	keys := make([]string, 0)
-	for k, _ := range in {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	return keys
-}
-
-func NewRing(redundancy uint, servers map[string]Datastore) *Ring {
-	this := new(Ring)
+func NewContinuum(servers map[string]Datastore) *Continuum {
+	this := new(Continuum)
 	this.config = servers
-	this.redun = redundancy
 	this.crypt = sha1.New()
 	total := uint64(0)
 	for _, server := range servers {
 		total += server.Capacity()
 	}
-	for _, server := range this.sortMapKeys(servers) {
-		times := math.Floor((float64(len(servers)) * 320 * float64(servers[server].Capacity())) / float64(total))
+	for _, server := range servers {
+		times := math.Floor((float64(len(servers)) * POINTS_PER_SERVER * float64(server.Capacity())) / float64(total))
 		for i := 0; i < int(times); i++ {
-			this.servers = append(this.servers, servers[server])
+			hash := this.hash(fmt.Sprintf("%s:%d", server.Host(), i))
+			this.servers = append(this.servers, &ContinuumEntry{server, hash})
 		}
 
 	}
+	sort.Sort(this.servers)
 	return this
 }
 
-func (this *Ring) ReduceRing(reducer Datastore) *Ring {
+func (this *Continuum) hash(remote string) uint64 {
+	key := this.crypt.Sum([]byte(remote))
+	this.crypt.Reset()
+	return binary.BigEndian.Uint64(key)
+}
+
+func (this *Continuum) server(remote string) Datastore {
+	index := this.hash(remote)
+	return this.servers[index%uint64(len(this.servers))].datastore
+}
+
+func (this *Continuum) redudantServers(remote string, redun uint) []Datastore {
+	servers := make([]Datastore, redun)
+	reduced := this
+	for i := uint(0); i < redun; i++ {
+		servers[i] = reduced.server(remote)
+		reduced = reduced.reduce(servers[i])
+	}
+	return servers
+}
+
+func (this *Continuum) reduce(reducer Datastore) *Continuum {
 	reduced := make(map[string]Datastore)
-	for _, server := range this.servers {
+	for _, entry := range this.servers {
+		server := entry.datastore
 		if server.Host() != reducer.Host() {
 			reduced[server.Host()] = server
 		}
 	}
-	return NewRing(this.redun-1, reduced)
+	return NewContinuum(reduced)
+}
+
+type Ring struct {
+	continuum *Continuum
+	redun     uint
+}
+
+func NewRing(redun uint, servers map[string]Datastore) *Ring {
+	return &Ring{NewContinuum(servers), redun}
 }
 
 func (this *Ring) Get(remote string) (io.ReadCloser, error) {
 	var err error
-	for _, server := range this.redudantServers(remote) {
+	for _, server := range this.continuum.redudantServers(remote, this.redun) {
 		closer, e := server.Get(remote)
 		err = e
 		if err == nil {
@@ -97,30 +159,20 @@ func (this *Ring) Get(remote string) (io.ReadCloser, error) {
 func (this *Ring) Delete(remote string) (io.ReadCloser, error) {
 	var err error
 	closers := make([]io.ReadCloser, this.redun)
-	for i, server := range this.redudantServers(remote) {
+	for i, server := range this.continuum.redudantServers(remote, this.redun) {
 		closers[i], err = server.Delete(remote)
 		if err != nil {
 			return MultiReadCloser(closers[0:i]), err
 		}
 	}
 	return MultiReadCloser(closers), nil
-
-}
-
-type status struct {
-	closer io.ReadCloser
-	err    error
-}
-
-func newStatus(closer io.ReadCloser, err error) *status {
-	return &status{closer, err}
 }
 
 func (this *Ring) Put(local, remote string) (io.ReadCloser, error) {
 	closers := make([]io.ReadCloser, this.redun)
 	stats := make(chan *status, this.redun)
 	var err error
-	for _, server := range this.redudantServers(remote) {
+	for _, server := range this.continuum.redudantServers(remote, this.redun) {
 		go func(server Datastore) {
 			stats <- newStatus(server.Put(local, remote))
 		}(server)
@@ -136,20 +188,11 @@ func (this *Ring) Put(local, remote string) (io.ReadCloser, error) {
 	return MultiReadCloser(closers), err
 }
 
-type files struct {
-	keys []string
-	err  error
-}
-
-func newfiles(keys []string, err error) *files {
-	return &files{keys, err}
-}
-
 func (this *Ring) Ls(path string) ([]string, error) {
 	set := make(map[string]bool)
 	links := make([]string, 0)
-	lists := make(chan *files, this.redun)
-	for _, host := range this.config {
+	lists := make(chan *files, len(this.continuum.config))
+	for _, host := range this.continuum.config {
 		go func(host Datastore) {
 			lists <- newfiles(host.Ls(path))
 		}(host)
@@ -166,24 +209,6 @@ func (this *Ring) Ls(path string) ([]string, error) {
 				set[result] = true
 			}
 		}
-
 	}
 	return links, nil
-}
-
-func (this *Ring) redudantServers(remote string) []Datastore {
-	servers := make([]Datastore, this.redun)
-	reduced := this
-	for i := uint(0); i < this.redun; i++ {
-		servers[i] = reduced.server(remote)
-		reduced = reduced.ReduceRing(servers[i])
-	}
-	return servers
-}
-
-func (this *Ring) server(remote string) Datastore {
-	key := this.crypt.Sum([]byte(remote))
-	this.crypt.Reset()
-	index := binary.BigEndian.Uint64(key)
-	return this.servers[index%uint64(len(this.servers))]
 }
