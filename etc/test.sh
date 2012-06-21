@@ -20,8 +20,8 @@ curl -I --silent $host/C/hi.txt | grep -q 404 || fail "Shouldn't have found /C/h
 
 echo "testing put"
 NGXFS_CONF=$here/ngxfs.conf ngxfs -put $here/hi.txt /hi.txt
-curl -I --silent $host/A/hi.txt | grep -q 404 || fail "Shouldn't have found /A/hi.txt"
-curl -I --silent $host/B/hi.txt | grep -q 200 || fail "Should have found /B/hi.txt"
+curl -I --silent $host/A/hi.txt | grep -q 200 || fail "Should have found /A/hi.txt"
+curl -I --silent $host/B/hi.txt | grep -q 404 || fail "Shouldn't have found /B/hi.txt"
 curl -I --silent $host/C/hi.txt | grep -q 200 || fail "Should have found /C/hi.txt"
 
 echo "testing get"
@@ -37,7 +37,7 @@ curl -I --silent $host/B/hi.txt | grep -q 404 || fail "Shouldn't have found /B/h
 curl -I --silent $host/C/hi.txt | grep -q 404 || fail "Shouldn't have found /C/hi.txt"
 
 echo "cleaning up"
-curl -XDELETE http://0.0.0.0:8080/B/
+curl -XDELETE http://0.0.0.0:8080/A/
 curl -XDELETE http://0.0.0.0:8080/C/
 
 echo "win"
