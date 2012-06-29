@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net/http"
 	"os"
 )
 
@@ -33,12 +34,19 @@ func (this *Configuration) UnmarshalJSON(data []byte) error {
 }
 
 func newConfiguration() *Configuration {
-	configPath := os.Getenv("NGXFS_CONF")
-	conf := &Configuration{make(map[string]Datastore), 1}
-	if configPath == "" {
+	configurl := os.Getenv("NGXFS_CONF")
+	if configurl == "" {
 		log.Fatal("NGXFS_CONF undefined")
 	}
-	content, err := ioutil.ReadFile(configPath)
+	conf := &Configuration{make(map[string]Datastore), 1}
+	resp, err := http.Get(configurl)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if resp.StatusCode != 200 {
+		log.Fatalf("%d status code when retrieving %s", resp.StatusCode, configurl)
+	}
+	content, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		log.Fatal(err)
 	}
