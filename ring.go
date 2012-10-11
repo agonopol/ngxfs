@@ -202,7 +202,7 @@ func (this *Ring) Ls(path string) ([]string, error) {
 			lists <- newfiles(host.Ls(path))
 		}(host)
 	}
-	for i := uint(0); i < this.redun; i++ {
+	for i := 0; i < len(this.continuum.config); i++ {
 		results := <-lists
 		if results.err != nil {
 			return nil, results.err
