@@ -36,7 +36,7 @@ func (this *DudStore) Host() string {
 	return this.name
 }
 
-func TestCintinuumCollisions(t *testing.T) {
+func TestContinuumCollisions(t *testing.T) {
 	config := make(map[string]Datastore)
 	config["A"] = &DudStore{10, "A"}
 	config["B"] = &DudStore{2324, "B"}
@@ -69,6 +69,22 @@ func RandomString(n int) string {
 		str[i] = chars[RandomNumber(len(chars))]
 	}
 	return string(str)
+}
+
+func TestContinuumGeneratesDifferentServers(t *testing.T) {
+	config := make(map[string]Datastore)
+	config["A"] = &DudStore{10, "A"}
+	config["B"] = &DudStore{10, "B"}
+	ring := NewContinuum(config)
+	datastores := ring.RedundantServers("a", 1)
+	if datastores[0].Host() != "A" {
+		t.Fatalf("Expected A, Got %v", datastores[0].Host())
+	}
+	datastores = ring.RedundantServers("b", 1)
+	if datastores[0].Host() != "B" {
+		t.Fatalf("Expected B, Got %v", datastores[0].Host())
+	}
+
 }
 
 func BenchmarkContinuumDistribution(t *testing.B) {

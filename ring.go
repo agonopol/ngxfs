@@ -117,7 +117,7 @@ func (this *Continuum) server(remote string) Datastore {
 	return this.servers[index%uint64(len(this.servers))].datastore
 }
 
-func (this *Continuum) RedudantServers(remote string, redun uint) []Datastore {
+func (this *Continuum) RedundantServers(remote string, redun uint) []Datastore {
 	servers := make([]Datastore, redun)
 	reduced := this
 	for i := uint(0); i < redun; i++ {
@@ -151,7 +151,7 @@ func NewRing(redun uint, servers map[string]Datastore) *Ring {
 
 func (this *Ring) Get(remote string) (io.ReadCloser, error) {
 	var err error
-	for _, server := range this.continuum.RedudantServers(remote, this.redun) {
+	for _, server := range this.continuum.RedundantServers(remote, this.redun) {
 		closer, e := server.Get(remote)
 		err = e
 		if err == nil {
@@ -164,7 +164,7 @@ func (this *Ring) Get(remote string) (io.ReadCloser, error) {
 func (this *Ring) Delete(remote string) (io.ReadCloser, error) {
 	var err error
 	closers := make([]io.ReadCloser, this.redun)
-	for i, server := range this.continuum.RedudantServers(remote, this.redun) {
+	for i, server := range this.continuum.RedundantServers(remote, this.redun) {
 		closers[i], err = server.Delete(remote)
 		if err != nil {
 			return MultiReadCloser(closers[0:i]), err
@@ -177,7 +177,7 @@ func (this *Ring) Put(local, remote string) (io.ReadCloser, error) {
 	closers := make([]io.ReadCloser, this.redun)
 	stats := make(chan *status, this.redun)
 	var err error
-	for _, server := range this.continuum.RedudantServers(remote, this.redun) {
+	for _, server := range this.continuum.RedundantServers(remote, this.redun) {
 		go func(server Datastore) {
 			stats <- newStatus(server.Put(local, remote))
 		}(server)

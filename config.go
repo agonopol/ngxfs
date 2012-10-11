@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 )
 
 type Configuration struct {
@@ -30,6 +31,7 @@ func (this *Configuration) UnmarshalJSON(data []byte) error {
 		log.Panicf("No %v key found in configuration file", HOSTS_KEY)
 	}
 	for server, weight := range hosts.(map[string]interface{}) {
+		server = strings.Replace(server, "http://", "", 1)
 		this.Servers[server] = NewHttpDatastore(server, uint64(weight.(float64)))
 	}
 	if redun, found := conf[REDUN_KEY]; found {
