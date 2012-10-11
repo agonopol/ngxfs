@@ -121,8 +121,10 @@ func (this *Continuum) RedudantServers(remote string, redun uint) []Datastore {
 	servers := make([]Datastore, redun)
 	reduced := this
 	for i := uint(0); i < redun; i++ {
+		if i > 0 {
+			reduced = reduced.reduce(servers[i-1])
+		}
 		servers[i] = reduced.server(remote)
-		reduced = reduced.reduce(servers[i])
 	}
 	return servers
 }
