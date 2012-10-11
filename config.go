@@ -15,6 +15,9 @@ type Configuration struct {
 	Redun   uint
 }
 
+const HOSTS_KEY = "storageServers"
+const REDUN_KEY = "redun"
+
 func (this *Configuration) UnmarshalJSON(data []byte) error {
 	this.Servers = make(map[string]Datastore)
 	conf := make(map[string]interface{})
@@ -22,10 +25,14 @@ func (this *Configuration) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
-	for server, weight := range conf["hosts"].(map[string]interface{}) {
+	hosts, found := conf[HOSTS_KEY]
+	if !found {
+		log.Panicf("No %v key found in configuration file", HOSTS_KEY)
+	}
+	for server, weight := range hosts.(map[string]interface{}) {
 		this.Servers[server] = NewHttpDatastore(server, uint64(weight.(float64)))
 	}
-	if redun, found := conf["redun"]; found {
+	if redun, found := conf[REDUN_KEY]; found {
 		this.Redun = uint(redun.(float64))
 	} else {
 		this.Redun = 1
@@ -39,10 +46,10 @@ func (this *Configuration) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func newConfiguration() *Configuration {
+func NewConfiguration() *Configuration {
 	configurl := os.Getenv("NGXFS_CONF")
 	if configurl == "" {
-		log.Fatal("NGXFS_CONF undefined")
+		log.Panic("NGXFS_CONF undefined")
 	}
 	conf := &Configuration{make(map[string]Datastore), 1}
 	resp, err := http.Get(configurl)

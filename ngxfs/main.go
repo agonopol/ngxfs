@@ -12,7 +12,7 @@ import (
 
 var get *bool = flag.Bool("get", true, "get <remote>")
 var put *bool = flag.Bool("put", false, "put <local> <remote>")
-var putall *string = flag.Bool("putall", "", "putall <local -newline- remote -newline- pairs file>")
+var putall *string = flag.String("putall", "", "putall <local -newline- remote -newline- pairs file>")
 var del *bool = flag.Bool("del", false, "del <remote>")
 var ls *bool = flag.Bool("ls", false, "ls <path>")
 
@@ -22,10 +22,10 @@ func main() {
 	flag.Parse()
 	args := flag.Args()
 	config := ngxfs.NewConfiguration()
-	ring := NewRing(config.Redun, config.Servers)
+	ring := ngxfs.NewRing(config.Redun, config.Servers)
 	if *putall != "" {
 		log.Panicf("putall is not implemented yet")
-	} else *put {
+	} else if *put {
 		if len(args) != 2 {
 			flag.Usage()
 			os.Exit(1)
