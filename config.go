@@ -1,4 +1,4 @@
-package main
+package ngxfs
 
 import (
 	"encoding/json"
@@ -11,24 +11,25 @@ import (
 )
 
 type Configuration struct {
-	servers map[string]Datastore
-	redun   uint
+	Servers map[string]Datastore
+	Redun   uint
 }
 
 func (this *Configuration) UnmarshalJSON(data []byte) error {
+	this.Servers = make(map[string]Datastore)
 	conf := make(map[string]interface{})
 	err := json.Unmarshal(data, &conf)
 	if err != nil {
 		return err
 	}
 	for server, weight := range conf["hosts"].(map[string]interface{}) {
-		this.servers[server] = NewHttpDatastore(server, uint64(weight.(float64)))
+		this.Servers[server] = NewHttpDatastore(server, uint64(weight.(float64)))
 	}
 	if redun, found := conf["redun"]; found {
-		this.redun = uint(redun.(float64))
+		this.Redun = uint(redun.(float64))
 	}
-	if len(this.servers) < int(this.redun) {
-		return errors.New(fmt.Sprintf("Servers [%d] < Redun [%d]", len(this.servers), this.redun))
+	if len(this.Servers) < int(this.Redun) {
+		return errors.New(fmt.Sprintf("Servers [%d] < Redun [%d]", len(this.Servers), this.Redun))
 	}
 	return nil
 }
