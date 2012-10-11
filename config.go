@@ -27,6 +27,11 @@ func (this *Configuration) UnmarshalJSON(data []byte) error {
 	}
 	if redun, found := conf["redun"]; found {
 		this.Redun = uint(redun.(float64))
+	} else {
+		this.Redun = 1
+	}
+	if this.Redun == 0 {
+		return errors.New("0 Redun does not make sense")
 	}
 	if len(this.Servers) < int(this.Redun) {
 		return errors.New(fmt.Sprintf("Servers [%d] < Redun [%d]", len(this.Servers), this.Redun))
