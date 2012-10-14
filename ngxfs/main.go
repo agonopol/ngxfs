@@ -8,13 +8,26 @@ import (
 	"log"
 	"os"
 	"ngxfs"
+	"strings"
 )
 
 var get *bool = flag.Bool("get", true, "get <remote>")
 var put *bool = flag.Bool("put", false, "put <local> <remote>")
-var putall *string = flag.String("putall", "", "putall <local -newline- remote -newline- pairs file>")
+var putall *bool = flag.Bool("putall", false, "putall <pairs_file>")
 var del *bool = flag.Bool("del", false, "del <remote>")
 var ls *bool = flag.Bool("ls", false, "ls <path>")
+
+func next_put_pair(buf *bufio.Reader) (string, string, error) {
+	local, err:= buf.ReadString('\n') 
+	if err != nil {
+		return local, "", err
+	}
+	remote, err := buf.ReadString('\n')
+	if err == io.EOF {
+		return local, remote, fmt.Errorf("Got EOF while trying to read the remote url. err: %v", err)
+	}
+	return strings.Trim(local, "\n"), strings.Trim(remote, "\n"), err
+}
 
 func main() {
 	// Remove all info from log output
@@ -23,8 +36,32 @@ func main() {
 	args := flag.Args()
 	config := ngxfs.NewConfiguration()
 	ring := ngxfs.NewRing(config.Redun, config.Servers)
-	if *putall != "" {
-		log.Panicf("putall is not implemented yet")
+	if *putall {
+		if len(args) != 1 {
+			flag.Usage()
+			os.Exit(1)
+		}
+		file, err := os.Open(args[0])
+		defer file.Close()
+		if err != nil {
+			log.Panicf("Error opening file %v. err: %v", args[0], err)
+		}
+		buf := bufio.NewReader(file)
+
+		for ;; {
+			local, remote, err := next_put_pair(buf)
+			if err != nil {
+				if err == io.EOF {
+					break
+				}
+				log.Panicf("Error while reading input file for 'putall'. Error: %v", err)
+			}
+			body, err := ring.Put(local, remote)
+			if err != nil {
+				log.Panicf("Error trying to put %v to %v err: %v", local, remote, err)
+				WriteBody(body, os.Stderr)
+			}
+		}
 	} else if *put {
 		if len(args) != 2 {
 			flag.Usage()
