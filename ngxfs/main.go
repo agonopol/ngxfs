@@ -8,7 +8,6 @@ import (
 	"log"
 	"os"
 	"ngxfs"
-	"strings"
 )
 
 var get *bool = flag.Bool("get", true, "get <remote>")
@@ -16,18 +15,6 @@ var put *bool = flag.Bool("put", false, "put <local> <remote>")
 var del *bool = flag.Bool("del", false, "del <remote>")
 var ls *bool = flag.Bool("ls", false, "ls <path>")
 var translate *bool = flag.Bool("translate", false, "translate")
-
-func next_put_pair(buf *bufio.Reader) (string, string, error) {
-	local, err:= buf.ReadString('\n') 
-	if err != nil {
-		return local, "", err
-	}
-	remote, err := buf.ReadString('\n')
-	if err == io.EOF {
-		return local, remote, fmt.Errorf("Got EOF while trying to read the remote url. err: %v", err)
-	}
-	return strings.Trim(local, "\n"), strings.Trim(remote, "\n"), err
-}
 
 func main() {
 	// Remove all info from log output
