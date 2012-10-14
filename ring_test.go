@@ -120,11 +120,11 @@ func TestRContinuumReduce(t *testing.T) {
 	config["B"] = &DudStore{2324, "B"}
 	ring := NewContinuum(config)
 	reduced := ring.reduce(config["B"])
-	if len(ring.servers) == len(reduced.servers) {
+	if len(ring.config) == len(reduced.config) {
 		t.Errorf("Reduced did not eliminate servers")
 	}
-	for _, server := range reduced.servers {
-		if server.datastore.(*DudStore).name == config["B"].(*DudStore).name {
+	for _, datastore := range reduced.config {
+		if datastore.(*DudStore).name == config["B"].(*DudStore).name {
 			t.Fatal("Reduce did not remove B from server list")
 		}
 	}

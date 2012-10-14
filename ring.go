@@ -88,19 +88,6 @@ func NewContinuum(servers map[string]Datastore) *Continuum {
 	this := new(Continuum)
 	this.config = servers
 	this.crypt = sha1.New()
-	total := uint64(0)
-	for _, server := range servers {
-		total += server.Capacity()
-	}
-	for _, server := range servers {
-		times := math.Floor((float64(len(servers)) * POINTS_PER_SERVER * float64(server.Capacity())) / float64(total))
-		for i := 0; i < int(times); i++ {
-			hash := this.hash(fmt.Sprintf("%s:%d", server.Host(), i))
-			this.servers = append(this.servers, &ContinuumEntry{server, hash})
-		}
-
-	}
-	sort.Sort(this.servers)
 	return this
 }
 
@@ -112,8 +99,25 @@ func (this *Continuum) hash(remote string) uint64 {
 	return binary.BigEndian.Uint64(this.crypt.Sum(nil))
 }
 
+func (this *Continuum) build() {
+	total := uint64(0)
+	for _, server := range this.config {
+		total += server.Capacity()
+	}
+	for _, server := range this.config {
+		times := math.Floor((float64(len(this.config)) * POINTS_PER_SERVER * float64(server.Capacity())) / float64(total))
+		for i := 0; i < int(times); i++ {
+			hash := this.hash(fmt.Sprintf("%s:%d", server.Host(), i))
+			this.servers = append(this.servers, &ContinuumEntry{server, hash})
+		}
+
+	}
+	sort.Sort(this.servers)
+}
+
 func (this *Continuum) server(remote string) Datastore {
 	index := this.hash(remote)
+	if this.servers == nil { this.build() }
 	return this.servers[index%uint64(len(this.servers))].datastore
 }
 
@@ -131,10 +135,9 @@ func (this *Continuum) RedundantServers(remote string, redun uint) []Datastore {
 
 func (this *Continuum) reduce(reducer Datastore) *Continuum {
 	reduced := make(map[string]Datastore)
-	for _, entry := range this.servers {
-		server := entry.datastore
-		if server.Host() != reducer.Host() {
-			reduced[server.Host()] = server
+	for _, datastore := range this.config {
+		if datastore.Host() != reducer.Host() {
+			reduced[datastore.Host()] = datastore
 		}
 	}
 	return NewContinuum(reduced)
