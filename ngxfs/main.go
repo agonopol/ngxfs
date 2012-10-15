@@ -8,13 +8,16 @@ import (
 	"log"
 	"os"
 	"ngxfs"
+	"strings"
 )
 
-var get *bool = flag.Bool("get", true, "get <remote>")
-var put *bool = flag.Bool("put", false, "put <local> <remote>")
-var del *bool = flag.Bool("del", false, "del <remote>")
-var ls *bool = flag.Bool("ls", false, "ls <path>")
-var translate *bool = flag.Bool("translate", false, "translate")
+var get *bool = flag.Bool("get", false, "-get <remote>")
+var put *bool = flag.Bool("put", false, "-put <local> <remote>")
+var del *bool = flag.Bool("del", false, "-del <remote>")
+var ls *bool = flag.Bool("ls", false, "-ls <path>")
+var url *bool = flag.Bool("url", false, "-ls -url <path>")
+var translate *bool = flag.Bool("translate", false, "-translate <path>")
+var translateall *bool = flag.Bool("translateall", false, "-translateall <file>")
 
 func main() {
 	// Remove all info from log output
@@ -48,7 +51,7 @@ func main() {
 			flag.Usage()
 			os.Exit(1)
 		}
-		results, err := ring.Ls(args[0])
+		results, err := ring.Ls(args[0], *url)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -65,6 +68,34 @@ func main() {
 			log.Fatal(err)
 		}
 		WriteBody(body, os.Stdout)
+	} else if *translate {
+		if len(args) != 1 {
+			flag.Usage()
+			os.Exit(1)
+		}
+		for _, path := range ring.Translate(args[0]) {
+			fmt.Println(path)
+		}
+	} else if *translateall {
+		if len(args) != 1 {
+			flag.Usage()
+			os.Exit(1)
+		}
+		file, err := os.Open(args[0])
+		defer file.Close()
+		if err != nil {
+			log.Panicf("Error opening file %v. err: %v", args[0], err)
+		}
+		buf := bufio.NewReader(file)
+		var line string
+		for line, err = buf.ReadString('\n'); err == nil; line, err = buf.ReadString('\n') {
+			for _, path := range ring.Translate(strings.Trim(line, "\n")) {
+				fmt.Println(path)
+			}
+		}
+		if err != io.EOF || (err == io.EOF && line != "") {
+			log.Panicf("Error parsing file. line: [%v], err: [%v]", line, err)
+		}
 	} else {
 		flag.Usage()
 		os.Exit(1)

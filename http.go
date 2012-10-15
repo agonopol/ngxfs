@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"path"
 )
 
 type HttpDatastore struct {
@@ -98,9 +99,18 @@ func (this *HttpDatastore) Ls(path string) ([]string, error) {
 		panic(e)
 	}
 	results := re.FindAllSubmatch(body, -1)
-	links := make([]string, len(results))
-	for i, result := range results {
-		links[i] = string(result[1])
+	links := make([]string, len(results) - 1)
+	idx := 0
+	for _, result := range results {
+		if file := string(result[1]); file != "../" {
+			links[idx] = string(file)
+			idx += 1
+		}
 	}
 	return links, nil
 }
+
+func (this *HttpDatastore) Url(elem ...string) string {
+	return "http://" + this.host + path.Join(elem...)
+}
+

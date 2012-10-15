@@ -11,4 +11,5 @@ type Datastore interface {
 	Ls(path string) ([]string, error)
 	Capacity() uint64
 	Host() string
+	Url(elem ...string) string
 }

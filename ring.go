@@ -9,6 +9,7 @@ import (
 	"math"
 	"sort"
 	"log"
+	"strings"
 )
 
 const POINTS_PER_SERVER = 320
@@ -51,12 +52,13 @@ func newStatus(closer io.ReadCloser, err error) *status {
 }
 
 type files struct {
-	keys []string
-	err  error
+	keys       []string
+	err   	   error
+	datastore  Datastore
 }
 
-func newfiles(keys []string, err error) *files {
-	return &files{keys, err}
+func newfiles(keys []string, err error, datastore Datastore) *files {
+	return &files{keys, err, datastore}
 }
 
 type ContinuumEntry struct {
@@ -196,13 +198,14 @@ func (this *Ring) Put(local, remote string) (io.ReadCloser, error) {
 	return MultiReadCloser(closers), err
 }
 
-func (this *Ring) Ls(path string) ([]string, error) {
+func (this *Ring) Ls(path string, url bool) ([]string, error) {
 	set := make(map[string]bool)
 	links := make([]string, 0)
 	lists := make(chan *files, len(this.continuum.config))
 	for _, host := range this.continuum.config {
 		go func(host Datastore) {
-			lists <- newfiles(host.Ls(path))
+			keys, err := host.Ls(path)
+			lists <- newfiles(keys, err, host)
 		}(host)
 	}
 	for i := 0; i < len(this.continuum.config); i++ {
@@ -213,10 +216,22 @@ func (this *Ring) Ls(path string) ([]string, error) {
 		for _, result := range results.keys {
 			_, exists := set[result]
 			if !exists {
-				links = append(links, result)
+				if url && !strings.HasSuffix(result, "/") {
+					links = append(links, results.datastore.Url(path, result))
+				} else {
+					links = append(links, result)
+				}
 				set[result] = true
 			}
 		}
 	}
 	return links, nil
+}
+
+func (this *Ring) Translate(path string) []string {
+	paths := make([]string, this.redun)
+	for i, server := range this.continuum.RedundantServers(path, this.redun) {
+		paths[i] = server.Url(path)
+	}
+	return paths
 }
