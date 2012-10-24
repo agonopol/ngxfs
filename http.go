@@ -10,6 +10,7 @@ import (
 	"os"
 	"regexp"
 	"path"
+	"strings"
 )
 
 type HttpDatastore struct {
@@ -80,6 +81,25 @@ func (this *HttpDatastore) Delete(remote string) (io.ReadCloser, error) {
 		return nil, err
 	}
 	if resp.StatusCode >= 300 {
+		return nil, errors.New(resp.Status)
+	}
+	return resp.Body, nil
+}
+
+func (this *HttpDatastore) DeleteDir(remoteDir string) (io.ReadCloser, error) {
+	if !strings.HasSuffix(remoteDir, "/") {
+		return nil, fmt.Errorf("remoteDir [%v] does not end with a /", remoteDir)
+	}
+
+	req, err := http.NewRequest("DELETE", this.url(remoteDir), nil)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := http.DefaultTransport.RoundTrip(req)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode != 404 && resp.StatusCode >= 300 {
 		return nil, errors.New(resp.Status)
 	}
 	return resp.Body, nil

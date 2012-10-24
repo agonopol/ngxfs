@@ -14,6 +14,7 @@ import (
 var get *bool = flag.Bool("get", false, "-get <remote>")
 var put *bool = flag.Bool("put", false, "-put <local> <remote>")
 var del *bool = flag.Bool("del", false, "-del <remote>")
+var deldir *bool = flag.Bool("deldir", false, "-deldir <remote>")
 var ls *bool = flag.Bool("ls", false, "-ls <path>")
 var url *bool = flag.Bool("url", false, "-ls -url <path>")
 var translate *bool = flag.Bool("translate", false, "-translate <path>")
@@ -42,6 +43,16 @@ func main() {
 			os.Exit(1)
 		}
 		body, err := ring.Delete(args[0])
+		if err != nil {
+			log.Fatal(err)
+			WriteBody(body, os.Stderr)
+		}
+	} else if *deldir {
+		if len(args) != 1 {
+			flag.Usage()
+			os.Exit(1)
+		}
+		body, err := ring.DeleteDir(args[0])
 		if err != nil {
 			log.Fatal(err)
 			WriteBody(body, os.Stderr)

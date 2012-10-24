@@ -178,6 +178,20 @@ func (this *Ring) Delete(remote string) (io.ReadCloser, error) {
 	return MultiReadCloser(closers), nil
 }
 
+func (this *Ring) DeleteDir(remoteDir string) (io.ReadCloser, error) {
+	var err error
+	closers := make([]io.ReadCloser, len(this.continuum.config))
+	i := -1
+	for _, server := range this.continuum.config {
+		i += 1
+		closers[i], err = server.DeleteDir(remoteDir)
+		if err != nil {
+			return MultiReadCloser(closers[0:i]), err
+		}
+	}
+	return MultiReadCloser(closers), nil
+}
+
 func (this *Ring) Put(local, remote string) (io.ReadCloser, error) {
 	closers := make([]io.ReadCloser, this.redun)
 	stats := make(chan *status, this.redun)
