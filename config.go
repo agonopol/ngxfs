@@ -48,25 +48,33 @@ func (this *Configuration) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+func GetContent(url string) ([]byte, error) {
+	if strings.HasPrefix(url, "http://") || strings.HasPrefix(url, "https://") {
+		resp, err := http.Get(url)
+		if err != nil {
+			log.Fatal(err)
+		}
+		if resp.StatusCode != 200 {
+			log.Fatalf("%d status code when retrieving %s", resp.StatusCode, url)
+		}
+		defer resp.Body.Close()
+		return ioutil.ReadAll(resp.Body)
+	}
+	return ioutil.ReadFile(url)
+}
+
 func NewConfiguration() *Configuration {
 	configurl := os.Getenv("NGXFS_CONF")
 	if configurl == "" {
 		log.Panic("NGXFS_CONF undefined")
 	}
+
+	content, err := GetContent(configurl)
+	if err != nil {
+		log.Fatal(err)
+	}
 	conf := &Configuration{make(map[string]Datastore), 1}
-	resp, err := http.Get(configurl)
-	if err != nil {
-		log.Fatal(err)
-	}
-	if resp.StatusCode != 200 {
-		log.Fatalf("%d status code when retrieving %s", resp.StatusCode, configurl)
-	}
-	content, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatal(err)
-	}
-	err = json.Unmarshal(content, &conf)
-	if err != nil {
+	if err := json.Unmarshal(content, &conf); err != nil {
 		log.Fatal(err)
 	}
 	return conf
