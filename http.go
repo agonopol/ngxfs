@@ -12,6 +12,7 @@ import (
 	"path"
 	"strings"
 	"net/url"
+	"log"
 )
 
 type HttpDatastore struct {
@@ -128,7 +129,11 @@ func (this *HttpDatastore) Ls(path string) ([]string, error) {
 	idx := 0
 	for _, result := range results {
 		if file := string(result[1]); file != "../" {
-			links[idx] = string(file)
+			parsed, err := url.Parse(file)
+			if err != nil {
+				log.Panicf("Error parsing request uri [%v] file. err: %v", file, err)
+			}
+			links[idx] = parsed.Path
 			idx += 1
 		}
 	}
