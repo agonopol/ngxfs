@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"path"
 	"strings"
+	"net/url"
 )
 
 type HttpDatastore struct {
@@ -27,7 +28,8 @@ func (this *HttpDatastore) Capacity() uint64 {
 }
 
 func (this *HttpDatastore) url(path string) string {
-	return fmt.Sprintf("http://%s%s", this.host, path)
+	url := url.URL{Scheme: "http", Host: this.host, Path: path}
+	return url.String()
 }
 
 func (this *HttpDatastore) Host() string {
