@@ -99,6 +99,9 @@ func (this *HttpDatastore) Ls(path string) ([]string, error) {
 		panic(e)
 	}
 	results := re.FindAllSubmatch(body, -1)
+	if len(results) == 0 {
+		return make([]string, 0), nil
+	}
 	links := make([]string, len(results) - 1)
 	idx := 0
 	for _, result := range results {
