@@ -7,17 +7,16 @@ import (
 	"io"
 	"log"
 	"os"
-	"path"
 	"ngxfs"
 	"strings"
 )
 
-var get *bool = flag.Bool("get", false, "-get <remote>")
+var outputFile *string = flag.String("o", "", "-o <outputfile> <url>")
 var put *bool = flag.Bool("put", false, "-put <local> <remote>")
 var del *bool = flag.Bool("del", false, "-del <remote>")
 var deldir *bool = flag.Bool("deldir", false, "-deldir <remote>")
 var ls *bool = flag.Bool("ls", false, "-ls <path>")
-var url *bool = flag.Bool("url", false, "-ls -url <path>")
+var url *bool = flag.Bool("url", false, "-url -ls <path>")
 var translate *bool = flag.Bool("translate", false, "-translate <path>")
 var translateall *bool = flag.Bool("translateall", false, "-translateall <file>")
 
@@ -70,27 +69,6 @@ func main() {
 		for _, result := range results {
 			fmt.Println(result)
 		}
-	} else if *get {
-		if len(args) != 1 {
-			flag.Usage()
-			os.Exit(1)
-		}
-		
-		outputFile := path.Base(args[0])
-		if _, err := os.Lstat(outputFile); err == nil {
-			log.Fatalf("Cannot perform get as outputfile [%v] already exists", outputFile)
-		}
-
-		body, err := ring.Get(args[0])
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		file, err := os.Create(outputFile)
-		if err != nil {
-			log.Fatal(err)
-		}
-		WriteBody(body, file)
 	} else if *translate {
 		if len(args) != 1 {
 			flag.Usage()
@@ -120,21 +98,38 @@ func main() {
 			log.Panicf("Error parsing file. line: [%v], err: [%v]", line, err)
 		}
 	} else {
-		flag.Usage()
-		os.Exit(1)
-	}
+		// Do a Get
+		if len(args) != 1 {
+			flag.Usage()
+			os.Exit(1)
+		}
+		
+		var body io.ReadCloser
+		var out io.WriteCloser
+		var err error
+
+		body, err = ring.Get(args[0])
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		if *outputFile == "" {
+			out = os.Stdout		
+		} else {
+			out, err = os.Create(*outputFile)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+		WriteBody(body, out)
+	} 
 }
 
-func WriteBody(in io.ReadCloser, out io.Writer) {
+func WriteBody(in io.ReadCloser, out io.WriteCloser) {
 	defer in.Close()
-	r := bufio.NewReader(in)
-	bout := bufio.NewWriter(out)
-	defer bout.Flush()
-	for {
-		line, e := r.ReadSlice('\n')
-		if e != nil {
-			break
-		}
-		bout.Write(line)
+	defer out.Close()
+	_, err := io.Copy(out, in)
+	if err != nil {
+		log.Panicf("Error copying. err: %v", err)
 	}
 }
