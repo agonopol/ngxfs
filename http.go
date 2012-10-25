@@ -13,6 +13,7 @@ import (
 	"strings"
 	"net/url"
 	"log"
+	"strconv"
 )
 
 type HttpDatastore struct {
@@ -63,15 +64,26 @@ func (this *HttpDatastore) Put(local, remote string) (io.ReadCloser, error) {
 	return resp.Body, nil
 }
 
-func (this *HttpDatastore) Get(remote string) (io.ReadCloser, error) {
+func (this *HttpDatastore) Get(remote string) (io.ReadCloser, int64, error) {
 	resp, err := http.Get(this.url(remote))
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	if resp.StatusCode >= 300 {
-		return nil, errors.New(resp.Status)
+		return nil, 0, errors.New(resp.Status)
 	}
-	return resp.Body, nil
+	
+	contentLengthStr := resp.Header.Get("Content-Length")
+	if contentLengthStr == "" {
+		resp.Body.Close()
+		return nil, 0, fmt.Errorf("Did not find Content-Length when trying to Get [%v]", remote)
+	}
+	size, err := strconv.ParseInt(contentLengthStr, 10, 64)
+	if err != nil {
+		resp.Body.Close()
+		return nil, 0, err
+	}
+	return resp.Body, size, nil
 }
 
 func (this *HttpDatastore) Delete(remote string) (io.ReadCloser, error) {

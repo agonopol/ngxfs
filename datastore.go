@@ -5,7 +5,7 @@ import (
 )
 
 type Datastore interface {
-	Get(remote string) (io.ReadCloser, error)
+	Get(remote string) (io.ReadCloser, int64, error)
 	Put(local, remote string) (io.ReadCloser, error)
 	Delete(remote string) (io.ReadCloser, error)
 	DeleteDir(remoteDir string) (io.ReadCloser, error)

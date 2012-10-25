@@ -154,16 +154,16 @@ func NewRing(redun uint, servers map[string]Datastore) *Ring {
 	return &Ring{NewContinuum(servers), redun}
 }
 
-func (this *Ring) Get(remote string) (io.ReadCloser, error) {
+func (this *Ring) Get(remote string) (io.ReadCloser, int64, error) {
 	var err error
 	for _, server := range this.continuum.RedundantServers(remote, this.redun) {
-		closer, e := server.Get(remote)
+		closer, size, e := server.Get(remote)
 		err = e
 		if err == nil {
-			return closer, nil
+			return closer, size, nil
 		}
 	}
-	return nil, err
+	return nil, 0, err
 }
 
 func (this *Ring) Delete(remote string) (io.ReadCloser, error) {

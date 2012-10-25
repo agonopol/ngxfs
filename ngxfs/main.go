@@ -34,9 +34,10 @@ func main() {
 		}
 		body, err := ring.Put(args[0], args[1])
 		if err != nil {
-			log.Fatal(err)
 			WriteBody(body, os.Stderr)
+			log.Fatal(err)
 		}
+		body.Close()
 	} else if *del {
 		if len(args) != 1 {
 			flag.Usage()
@@ -44,9 +45,10 @@ func main() {
 		}
 		body, err := ring.Delete(args[0])
 		if err != nil {
-			log.Fatal(err)
 			WriteBody(body, os.Stderr)
+			log.Fatal(err)
 		}
+		body.Close()
 	} else if *deldir {
 		if len(args) != 1 {
 			flag.Usage()
@@ -54,9 +56,10 @@ func main() {
 		}
 		body, err := ring.DeleteDir(args[0])
 		if err != nil {
-			log.Fatal(err)
 			WriteBody(body, os.Stderr)
+			log.Fatal(err)
 		}
+		body.Close()
 	} else if *ls {
 		if len(args) != 1 {
 			flag.Usage()
@@ -105,10 +108,11 @@ func main() {
 		}
 		
 		var body io.ReadCloser
+		var size int64
 		var out io.WriteCloser
 		var err error
 
-		body, err = ring.Get(args[0])
+		body, size, err = ring.Get(args[0])
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -121,15 +125,18 @@ func main() {
 				log.Fatal(err)
 			}
 		}
-		WriteBody(body, out)
+		if bytesWritten := WriteBody(body, out); bytesWritten != size {
+			log.Panicf("Bytes written [%v] does not equal expected size [%v]", bytesWritten, size)
+		}
 	} 
 }
 
-func WriteBody(in io.ReadCloser, out io.WriteCloser) {
+func WriteBody(in io.ReadCloser, out io.WriteCloser) int64 {
 	defer in.Close()
 	defer out.Close()
-	_, err := io.Copy(out, in)
+	n, err := io.Copy(out, in)
 	if err != nil {
 		log.Panicf("Error copying. err: %v", err)
 	}
+	return n
 }
