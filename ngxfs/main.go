@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"path"
 	"ngxfs"
 	"strings"
 )
@@ -74,11 +75,22 @@ func main() {
 			flag.Usage()
 			os.Exit(1)
 		}
+		
+		outputFile := path.Base(args[0])
+		if _, err := os.Lstat(outputFile); err == nil {
+			log.Fatalf("Cannot perform get as outputfile [%v] already exists", outputFile)
+		}
+
 		body, err := ring.Get(args[0])
 		if err != nil {
 			log.Fatal(err)
 		}
-		WriteBody(body, os.Stdout)
+
+		file, err := os.Create(outputFile)
+		if err != nil {
+			log.Fatal(err)
+		}
+		WriteBody(body, file)
 	} else if *translate {
 		if len(args) != 1 {
 			flag.Usage()
