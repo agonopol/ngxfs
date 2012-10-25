@@ -3,7 +3,6 @@ package ngxfs
 import (
 	"bufio"
 	"errors"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -13,7 +12,7 @@ import (
 	"strings"
 	"net/url"
 	"log"
-	"strconv"
+	"fmt"
 )
 
 type HttpDatastore struct {
@@ -38,6 +37,16 @@ func (this *HttpDatastore) Host() string {
 	return this.host
 }
 
+func checkHttpResponse(resp *http.Response) error {
+	if resp.StatusCode == 404 {
+		return NotFoundError(resp.Status) 
+	}
+	if resp.StatusCode >= 300 {
+		return errors.New(resp.Status)
+	}
+	return nil
+}
+
 func (this *HttpDatastore) Put(local, remote string) (io.ReadCloser, error) {
 	f, e := os.Open(local)
 	if e != nil {
@@ -58,8 +67,9 @@ func (this *HttpDatastore) Put(local, remote string) (io.ReadCloser, error) {
 	if e != nil {
 		return nil, e
 	}
-	if resp.StatusCode >= 300 {
-		return nil, errors.New(resp.Status)
+	if err := checkHttpResponse(resp); err != nil {
+		resp.Body.Close()
+		return nil, err
 	}
 	return resp.Body, nil
 }
@@ -69,21 +79,15 @@ func (this *HttpDatastore) Get(remote string) (io.ReadCloser, int64, error) {
 	if err != nil {
 		return nil, 0, err
 	}
-	if resp.StatusCode >= 300 {
-		return nil, 0, errors.New(resp.Status)
-	}
-	
-	contentLengthStr := resp.Header.Get("Content-Length")
-	if contentLengthStr == "" {
-		resp.Body.Close()
-		return nil, 0, fmt.Errorf("Did not find Content-Length when trying to Get [%v]", remote)
-	}
-	size, err := strconv.ParseInt(contentLengthStr, 10, 64)
-	if err != nil {
+	if err := checkHttpResponse(resp); err != nil {
 		resp.Body.Close()
 		return nil, 0, err
 	}
-	return resp.Body, size, nil
+	if resp.ContentLength == -1 {
+		resp.Body.Close()
+		return nil, 0, fmt.Errorf("Unknown Content-Length when doing Get on url [%v]", remote)
+	}
+	return resp.Body, resp.ContentLength, nil
 }
 
 func (this *HttpDatastore) Delete(remote string) (io.ReadCloser, error) {
@@ -95,15 +99,16 @@ func (this *HttpDatastore) Delete(remote string) (io.ReadCloser, error) {
 	if err != nil {
 		return nil, err
 	}
-	if resp.StatusCode >= 300 {
-		return nil, errors.New(resp.Status)
+	if err := checkHttpResponse(resp); err != nil {
+		resp.Body.Close()
+		return nil, err
 	}
 	return resp.Body, nil
 }
 
 func (this *HttpDatastore) DeleteDir(remoteDir string) (io.ReadCloser, error) {
 	if !strings.HasSuffix(remoteDir, "/") {
-		return nil, fmt.Errorf("remoteDir [%v] does not end with a /", remoteDir)
+		remoteDir += "/"
 	}
 
 	req, err := http.NewRequest("DELETE", this.url(remoteDir), nil)
@@ -114,8 +119,9 @@ func (this *HttpDatastore) DeleteDir(remoteDir string) (io.ReadCloser, error) {
 	if err != nil {
 		return nil, err
 	}
-	if resp.StatusCode != 404 && resp.StatusCode >= 300 {
-		return nil, errors.New(resp.Status)
+	if err := checkHttpResponse(resp); err != nil {
+		resp.Body.Close()
+		return nil, err
 	}
 	return resp.Body, nil
 }
@@ -125,6 +131,11 @@ func (this *HttpDatastore) Ls(path string) ([]string, error) {
 	if e != nil {
 		return nil, e
 	}
+	if err := checkHttpResponse(resp); err != nil {
+		resp.Body.Close()
+		return nil, err
+	}
+
 	body, e := ioutil.ReadAll(resp.Body)
 	if e != nil {
 		return nil, e

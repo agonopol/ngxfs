@@ -121,6 +121,7 @@ func main() {
 			out = os.Stdout		
 		} else {
 			out, err = os.Create(*outputFile)
+			defer out.Close()
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -131,9 +132,8 @@ func main() {
 	} 
 }
 
-func WriteBody(in io.ReadCloser, out io.WriteCloser) int64 {
+func WriteBody(in io.ReadCloser, out io.Writer) int64 {
 	defer in.Close()
-	defer out.Close()
 	n, err := io.Copy(out, in)
 	if err != nil {
 		log.Panicf("Error copying. err: %v", err)

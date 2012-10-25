@@ -16,15 +16,19 @@ const POINTS_PER_SERVER = 320
 
 type multiReadCloser struct {
 	readers io.Reader
-	closers []io.ReadCloser
+	closers []io.Closer
 }
 
 func MultiReadCloser(rclosers []io.ReadCloser) *multiReadCloser {
-	readers := make([]io.Reader, len(rclosers))
-	for i, reader := range rclosers {
-		readers[i] = reader
+	readers := make([]io.Reader, 0)
+	closers := make([]io.Closer, 0)
+	for _, reader := range rclosers {
+		if reader != nil {
+			readers = append(readers, reader)
+			closers = append(closers, reader)
+		}
 	}
-	return &multiReadCloser{io.MultiReader(readers...), rclosers}
+	return &multiReadCloser{io.MultiReader(readers...), closers}
 }
 
 func (this *multiReadCloser) Read(p []byte) (int, error) {
@@ -179,17 +183,37 @@ func (this *Ring) Delete(remote string) (io.ReadCloser, error) {
 }
 
 func (this *Ring) DeleteDir(remoteDir string) (io.ReadCloser, error) {
-	var err error
 	closers := make([]io.ReadCloser, len(this.continuum.config))
-	i := -1
+	stats := make(chan *status, len(this.continuum.config))
+	var err error
+
 	for _, server := range this.continuum.config {
-		i += 1
-		closers[i], err = server.DeleteDir(remoteDir)
-		if err != nil {
-			return MultiReadCloser(closers[0:i]), err
+		go func(host Datastore) {
+			stats <- newStatus(host.DeleteDir(remoteDir))
+		}(server)
+	}
+
+	not_found_counter := 0
+
+	for i := 0; i < len(this.continuum.config); i++ {
+		stat := <-stats
+		closers[i] = stat.closer
+		if stat.err != nil {
+			if _, ok := stat.err.(NotFoundError); ok {
+				not_found_counter++
+			} else {
+				err = stat.err
+			}
 		}
 	}
-	return MultiReadCloser(closers), nil
+
+	close(stats)
+
+	if not_found_counter == len(this.continuum.config) {
+		err = NotFoundError(fmt.Sprintf("Directory [%v] not found", remoteDir))
+	}
+
+	return MultiReadCloser(closers), err
 }
 
 func (this *Ring) Put(local, remote string) (io.ReadCloser, error) {
@@ -222,14 +246,21 @@ func (this *Ring) Ls(path string, url bool) ([]string, error) {
 			lists <- newfiles(keys, err, host)
 		}(host)
 	}
+	
+	found := false
 	for i := 0; i < len(this.continuum.config); i++ {
 		results := <-lists
+		
 		if results.err != nil {
+			if _, ok := results.err.(NotFoundError); ok {
+				continue
+			}
 			return nil, results.err
 		}
+
+		found = true
 		for _, result := range results.keys {
-			_, exists := set[result]
-			if !exists {
+			if _, exists := set[result]; !exists {
 				if url && !strings.HasSuffix(result, "/") {
 					links = append(links, results.datastore.Url(path, result))
 				} else {
@@ -239,6 +270,11 @@ func (this *Ring) Ls(path string, url bool) ([]string, error) {
 			}
 		}
 	}
+
+	if !found {
+		return nil, NotFoundError(fmt.Sprintf("Path [%v] not found", path))
+	}
+
 	return links, nil
 }
 
