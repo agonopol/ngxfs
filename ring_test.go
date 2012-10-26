@@ -13,13 +13,22 @@ type DudStore struct {
 	name string
 }
 
-func (this *DudStore) Get(remote string) (io.ReadCloser, error) {
-	return nil, nil
+func (this *DudStore) Get(remote string) (io.ReadCloser, int64, error) {
+	return nil, 0, nil
 }
 
 func (this *DudStore) Put(local, remote string) (io.ReadCloser, error) {
 	return nil, nil
 }
+
+func (this *DudStore) Delete(remote string) (io.ReadCloser, error) {
+	return nil, nil
+}
+
+func (this *DudStore) DeleteDir(remoteDir string) (io.ReadCloser, error) {
+	return nil, nil
+}
+
 func (this *DudStore) Ls(path string) ([]string, error) {
 	return nil, nil
 }
@@ -28,13 +37,15 @@ func (this *DudStore) Capacity() uint64 {
 	return this.cap
 }
 
-func (this *DudStore) Delete(remote string) (io.ReadCloser, error) {
-	return nil, nil
-}
-
 func (this *DudStore) Host() string {
 	return this.name
 }
+
+func (this *DudStore) Url(elem ...string) string {
+	return ""
+}
+
+
 
 func TestContinuumCollisions(t *testing.T) {
 	config := make(map[string]Datastore)

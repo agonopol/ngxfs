@@ -25,9 +25,14 @@ export NGXFS_CONF=/path/to/ngxfs.conf
 
 ## USAGE
 ```bash
-Usage of ngxfs:
-  -del=false: del <remote>
-  -get=true: get <remote>
-  -ls=false: ls <path>
-  -put=false: put <local> <remote>
+Usage of ngxfs
+   fetch: <remote>
+  -del=false: -del <remote>
+  -deldir=false: -deldir <remote>
+  -ls=false: -ls <path>
+  -o="": -o <outputfile> <url>
+  -put=false: -put <local> <remote>
+  -translate=false: -translate <path>
+  -translateall=false: -translateall <file>
+  -url=false: -url -ls <path>
 ```
