@@ -7,7 +7,6 @@ import (
 	"io"
 	"log"
 	"os"
-	"ngxfs"
 	"strings"
 )
 
@@ -16,7 +15,7 @@ var put *bool = flag.Bool("put", false, "-put <local> <remote>")
 var del *bool = flag.Bool("del", false, "-del <remote>")
 var deldir *bool = flag.Bool("deldir", false, "-deldir <remote>")
 var ls *bool = flag.Bool("ls", false, "-ls <path>")
-var url *bool = flag.Bool("url", false, "-url -ls <path>")
+var fullurl *bool = flag.Bool("url", false, "-url -ls <path>")
 var translate *bool = flag.Bool("translate", false, "-translate <path>")
 var translateall *bool = flag.Bool("translateall", false, "-translateall <file>")
 
@@ -25,8 +24,8 @@ func main() {
 	log.SetFlags(0)
 	flag.Parse()
 	args := flag.Args()
-	config := ngxfs.NewConfiguration()
-	ring := ngxfs.NewRing(config.Redun, config.Servers)
+	config := NewConfiguration()
+	ring := NewRing(config.Redun, config.Servers)
 	if *put {
 		if len(args) != 2 {
 			flag.Usage()
@@ -65,7 +64,7 @@ func main() {
 			flag.Usage()
 			os.Exit(1)
 		}
-		results, err := ring.Ls(args[0], *url)
+		results, err := ring.Ls(args[0], *fullurl)
 		if err != nil {
 			log.Fatal(err)
 		}

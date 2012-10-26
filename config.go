@@ -1,4 +1,4 @@
-package ngxfs
+package main
 
 import (
 	"encoding/json"
