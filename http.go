@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"log"
 	"fmt"
+    "strings"
 )
 
 type HttpDatastore struct {
@@ -105,8 +106,11 @@ func (this *HttpDatastore) Delete(remote string) (io.ReadCloser, error) {
 	return resp.Body, nil
 }
 
-func (this *HttpDatastore) Ls(path string) ([]string, error) {
-	resp, e := http.Get(this.url(path))
+func (this *HttpDatastore) Ls(lspath string, recursive bool) ([]string, error) {
+    if !strings.HasSuffix(lspath, "/") {
+        lspath = lspath + "/"
+    }
+	resp, e := http.Get(this.url(lspath))
 	if e != nil {
 		return nil, e
 	}
@@ -119,6 +123,8 @@ func (this *HttpDatastore) Ls(path string) ([]string, error) {
 	if e != nil {
 		return nil, e
 	}
+    resp.Body.Close()
+
 	re, e := regexp.Compile(`\<a href\=\"(.*)\"\>`)
 	if e != nil {
 		panic(e)
@@ -127,18 +133,29 @@ func (this *HttpDatastore) Ls(path string) ([]string, error) {
 	if len(results) == 0 {
 		return make([]string, 0), nil
 	}
-	links := make([]string, len(results) - 1)
-	idx := 0
+	links := make([]string, 0)
 	for _, result := range results {
 		if file := string(result[1]); file != "../" {
 			parsed, err := url.Parse(file)
 			if err != nil {
 				log.Panicf("Error parsing request uri [%v] file. err: %v", file, err)
 			}
-			links[idx] = parsed.Path
-			idx += 1
+
+            if strings.HasSuffix(parsed.Path, "/") && recursive {
+                subdir := path.Join(lspath, parsed.Path)
+                sublinks, err := this.Ls(subdir, recursive)
+                if err != nil {
+                    return make([]string, 0), nil
+                }
+                for _, sublink := range(sublinks) {
+                    links = append(links, path.Join(parsed.Path, sublink))
+                }
+            } else {
+                links = append(links, parsed.Path)
+            }
 		}
 	}
+
 	return links, nil
 }
 

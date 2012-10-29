@@ -224,13 +224,13 @@ func (this *Ring) Put(local, remote string) (io.ReadCloser, error) {
 	return MultiReadCloser(closers), err
 }
 
-func (this *Ring) Ls(path string, url bool) ([]string, error) {
+func (this *Ring) Ls(path string, url bool, recursive bool) ([]string, error) {
 	set := make(map[string]bool)
 	links := make([]string, 0)
 	lists := make(chan *files, len(this.continuum.config))
 	for _, host := range this.continuum.config {
 		go func(host Datastore) {
-			keys, err := host.Ls(path)
+			keys, err := host.Ls(path, recursive)
 			lists <- newfiles(keys, err, host)
 		}(host)
 	}

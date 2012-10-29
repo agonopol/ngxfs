@@ -15,6 +15,7 @@ var put *bool = flag.Bool("put", false, "-put <local> <remote>")
 var del *bool = flag.Bool("del", false, "-del <remote>")
 var ls *bool = flag.Bool("ls", false, "-ls <path>")
 var fullurl *bool = flag.Bool("url", false, "-url -ls <path>")
+var recursive *bool = flag.Bool("r", false, "-r -ls <path>")
 var translate *bool = flag.Bool("translate", false, "-translate <path>")
 var translateall *bool = flag.Bool("translateall", false, "-translateall <file>")
 
@@ -52,7 +53,7 @@ func main() {
 			flag.Usage()
 			os.Exit(1)
 		}
-		results, err := ring.Ls(args[0], *fullurl)
+		results, err := ring.Ls(args[0], *fullurl, *recursive)
 		if err != nil {
 			log.Fatal(err)
 		}
