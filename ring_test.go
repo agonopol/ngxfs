@@ -29,7 +29,7 @@ func (this *DudStore) DeleteDir(remoteDir string) (io.ReadCloser, error) {
 	return nil, nil
 }
 
-func (this *DudStore) Ls(path string) ([]string, error) {
+func (this *DudStore) Ls(path string, recursive bool) ([]string, error) {
 	return nil, nil
 }
 
