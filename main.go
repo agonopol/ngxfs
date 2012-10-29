@@ -13,7 +13,6 @@ import (
 var outputFile *string = flag.String("o", "", "-o <outputfile> <url>")
 var put *bool = flag.Bool("put", false, "-put <local> <remote>")
 var del *bool = flag.Bool("del", false, "-del <remote>")
-var deldir *bool = flag.Bool("deldir", false, "-deldir <remote>")
 var ls *bool = flag.Bool("ls", false, "-ls <path>")
 var fullurl *bool = flag.Bool("url", false, "-url -ls <path>")
 var translate *bool = flag.Bool("translate", false, "-translate <path>")
@@ -43,17 +42,6 @@ func main() {
 			os.Exit(1)
 		}
 		body, err := ring.Delete(args[0])
-		if err != nil {
-			WriteBody(body, os.Stderr)
-			log.Fatal(err)
-		}
-		body.Close()
-	} else if *deldir {
-		if len(args) != 1 {
-			flag.Usage()
-			os.Exit(1)
-		}
-		body, err := ring.DeleteDir(args[0])
 		if err != nil {
 			WriteBody(body, os.Stderr)
 			log.Fatal(err)

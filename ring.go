@@ -171,25 +171,13 @@ func (this *Ring) Get(remote string) (io.ReadCloser, int64, error) {
 }
 
 func (this *Ring) Delete(remote string) (io.ReadCloser, error) {
-	var err error
-	closers := make([]io.ReadCloser, this.redun)
-	for i, server := range this.continuum.RedundantServers(remote, this.redun) {
-		closers[i], err = server.Delete(remote)
-		if err != nil {
-			return MultiReadCloser(closers[0:i]), err
-		}
-	}
-	return MultiReadCloser(closers), nil
-}
-
-func (this *Ring) DeleteDir(remoteDir string) (io.ReadCloser, error) {
 	closers := make([]io.ReadCloser, len(this.continuum.config))
 	stats := make(chan *status, len(this.continuum.config))
 	var err error
 
 	for _, server := range this.continuum.config {
 		go func(host Datastore) {
-			stats <- newStatus(host.DeleteDir(remoteDir))
+			stats <- newStatus(host.Delete(remote))
 		}(server)
 	}
 
@@ -210,7 +198,7 @@ func (this *Ring) DeleteDir(remoteDir string) (io.ReadCloser, error) {
 	close(stats)
 
 	if not_found_counter == len(this.continuum.config) {
-		err = NotFoundError(fmt.Sprintf("Directory [%v] not found", remoteDir))
+		err = NotFoundError(fmt.Sprintf("Remote [%v] not found", remote))
 	}
 
 	return MultiReadCloser(closers), err

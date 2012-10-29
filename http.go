@@ -9,7 +9,6 @@ import (
 	"os"
 	"regexp"
 	"path"
-	"strings"
 	"net/url"
 	"log"
 	"fmt"
@@ -92,26 +91,6 @@ func (this *HttpDatastore) Get(remote string) (io.ReadCloser, int64, error) {
 
 func (this *HttpDatastore) Delete(remote string) (io.ReadCloser, error) {
 	req, err := http.NewRequest("DELETE", this.url(remote), nil)
-	if err != nil {
-		return nil, err
-	}
-	resp, err := http.DefaultTransport.RoundTrip(req)
-	if err != nil {
-		return nil, err
-	}
-	if err := checkHttpResponse(resp); err != nil {
-		resp.Body.Close()
-		return nil, err
-	}
-	return resp.Body, nil
-}
-
-func (this *HttpDatastore) DeleteDir(remoteDir string) (io.ReadCloser, error) {
-	if !strings.HasSuffix(remoteDir, "/") {
-		remoteDir += "/"
-	}
-
-	req, err := http.NewRequest("DELETE", this.url(remoteDir), nil)
 	if err != nil {
 		return nil, err
 	}
