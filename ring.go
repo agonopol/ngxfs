@@ -198,7 +198,7 @@ func (this *Ring) Delete(remote string) (io.ReadCloser, error) {
 	close(stats)
 
 	if not_found_counter == len(this.continuum.config) {
-		err = NotFoundError(fmt.Sprintf("Remote [%v] not found", remote))
+		err = NotFoundError(fmt.Sprintf("Path [%v] not found", remote))
 	}
 
 	return MultiReadCloser(closers), err
